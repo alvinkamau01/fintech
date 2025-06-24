@@ -51,19 +51,7 @@ function SignUp() {
         align='center'
         mt='6.5rem'
         mb='30px'>
-        <Text fontSize='4xl' color='white' fontWeight='bold'>
-          Welcome!
-        </Text>
-        <Text
-          fontSize='md'
-          color='white'
-          fontWeight='normal'
-          mt='10px'
-          mb='26px'
-          w={{ base: "90%", sm: "60%", lg: "40%", xl: "30%" }}>
-          Use these awesome forms to login or create new account in your project
-          for free.
-        </Text>
+        
       </Flex>
       <Flex alignItems='center' justifyContent='center' mb='60px' mt='20px'>
         <Flex
@@ -221,9 +209,8 @@ function SignUp() {
               Already have an account?
               <Link
                 color={titleColor}
-                as='span'
                 ms='5px'
-                href='#'
+                href="/auth/signin"
                 fontWeight='bold'>
                 Sign In
               </Link>

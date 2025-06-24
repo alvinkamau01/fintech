@@ -7,7 +7,7 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
-export function SearchBar(props) {
+ function SearchBar(props) {
   // Pass the computed styles into the `__css` prop
   const { variant, children, ...rest } = props;
   // Chakra Color Mode
@@ -53,3 +53,6 @@ export function SearchBar(props) {
     </InputGroup>
   );
 }
+
+
+export default SearchBar

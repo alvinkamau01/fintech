@@ -12,6 +12,7 @@ import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 import IconBox from "components/Icons/IconBox";
 import React from "react";
+import { FaFileSignature } from "react-icons/fa6";
 
 const MiniStatistics = ({ title, amount, percentage, icon }) => {
   const iconTeal = useColorModeValue("teal.300", "teal.300");
@@ -33,16 +34,20 @@ const MiniStatistics = ({ title, amount, percentage, icon }) => {
               <StatNumber fontSize='lg' color={textColor}>
                 {amount}
               </StatNumber>
-              <StatHelpText
-                alignSelf='flex-end'
-                justifySelf='flex-end'
-                m='0px'
-                color={percentage > 0 ? "green.400" : "red.400"}
-                fontWeight='bold'
-                ps='3px'
-                fontSize='md'>
-                {percentage > 0 ? `+${percentage}%` : `${percentage}%`}
-              </StatHelpText>
+              {percentage !== undefined && (
+  <StatHelpText
+    alignSelf="flex-end"
+    justifySelf="flex-end"
+    m="0px"
+    color={percentage > 0 ? "green.400" : "red.400"}
+    fontWeight="bold"
+    ps="3px"
+    fontSize="md"
+  >
+    {percentage > 0 ? `+${percentage}%` : `${percentage}%`}
+  </StatHelpText>
+)}
+
             </Flex>
           </Stat>
           <IconBox as='box' h={"45px"} w={"45px"} bg={iconTeal}>
