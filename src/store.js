@@ -1,9 +1,17 @@
-import react from  'React';
-import {createStore, applyMiddleware,combineReducers} from 'redux';
+import React from 'react';
+import { createStore, applyMiddleware, combineReducers } from 'redux';
 import {thunk} from 'redux-thunk';
-import {createLogger} from 'redux-logger';
+import { createLogger } from 'redux-logger';
+import loanReducer from './reducers/loanReducer';
+import clientsReducer from './reducers/clientsReducer';
 
+const logger = createLogger();
 
-const logger = createLogger()
-const store = createStore(applyMiddleware(thunk,logger));
+const rootReducer = combineReducers({
+  loan: loanReducer,
+  clients: clientsReducer,
+});
+
+const store = createStore(rootReducer, applyMiddleware(thunk, logger));
+
 export default store;

@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchLoanDetails, fetchPersonalInfo } from '../../../../reducers/loanReducer';
 import {
   Box,
   Table,
@@ -134,13 +136,48 @@ const MOCK_APPLICATIONS = [
 ];
 
 function LoansProcessingTable() {
-  const [applications, setApplications] = useState(MOCK_APPLICATIONS);
+  const dispatch = useDispatch();
+  const loanDetails = useSelector((state) => state.loan.loanDetails);
+  const personalInfo = useSelector((state) => state.loan.personalInfo);
+  const loading = useSelector((state) => state.loan.loading);
+  const error = useSelector((state) => state.loan.error);
+
+  const [applications, setApplications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState("applicationDate");
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const applicationsPerPage = 5;
+
+  useEffect(() => {
+    dispatch(fetchLoanDetails());
+    dispatch(fetchPersonalInfo());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (loanDetails.length > 0 && personalInfo.length > 0) {
+      const userIdMapName = {};
+      personalInfo.forEach((user) => {
+        userIdMapName[user.user_id || user.id] = user.name || "Unknown User";
+      });
+
+      const transformedData = loanDetails.map((application) => ({
+        id: application.id || application.referenceNumber || "N/A",
+        referenceNumber: application.referenceNumber || "N/A",
+        type: application.type || "N/A",
+        purpose: application.purpose || "Not specified",
+        amount: application.amount || 0,
+        applicant: userIdMapName[application.userId || application.user_id] || "Unknown",
+        applicationDate: application.application_date || new Date().toISOString(),
+        status: application.status || "submitted",
+        processingDays: application.processing_days || 0,
+        priority: application.priority || "medium"
+      }));
+
+      setApplications(transformedData);
+    }
+  }, [loanDetails, personalInfo]);
 
   // Handle application removal
   const handleRemoveApplication = (applicationId) => {
@@ -502,7 +539,7 @@ function LoansProcessingTable() {
                   <Td>
                     <VStack spacing={0} alignItems="flex-start">
                       <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                        {application.referenceNumber}
+                        {application.id}
                       </Text>
                       <Text fontSize="xs" color={secondaryTextColor}>
                         {application.applicant}

@@ -4,8 +4,8 @@ import LoansDueTable from "views/Dashboard/loans/components/LoansDue";
 import Tables from "views/Dashboard/Tables";
 import Billing from "views/Dashboard/Billing";
 import SignIn from "views/Auth/SignIn.js";
-import { ClientDetails } from "views/Dashboard/Clients/clientsDetails";
-import ClientsList from "views/Dashboard/Clients/clientsList"
+import ClientDetailsWrapper from "views/Dashboard/Clients/clientsDetails";
+import ClientsList from "views/Dashboard/Clients/clientsList";
 import SignUp from "views/Auth/SignUp.js";
 import EmployeesList from "views/Dashboard/Employees/EmployeesList.js";
 import Employees from "views/Dashboard/Employees/Employees.js";
@@ -83,10 +83,10 @@ var dashRoutes = [
     layout: "/admin",
   },
   {
-    path: "/clientsdetails",
-    name: "Client Profile",
+    path: "/clients/:id",
+    name: "Client Details",
     icon: <PersonIcon color="inherit" />,
-    component: ClientDetails,
+    component: ClientDetailsWrapper,
     layout: "/admin",
   },
   {
@@ -95,14 +95,6 @@ var dashRoutes = [
     icon: <PersonIcon color="inherit" />,
     component: EmployeesList,
     layout: "/admin",
-  },
-  {
-    path: "/employee/:id",
-    name: "Staff Profile",
-    icon: <PersonIcon color="inherit" />,
-    component: EmployeeDetails,
-    layout: "/admin",
-    hidden: true, // This will hide it from the sidebar
   },
   {
     path: "/map",

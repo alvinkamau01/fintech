@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import useFetch from "../../../../hooks/fetchHook";
-import useFilter from "../../../../hooks/filterHook";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
   Table,
@@ -28,119 +27,61 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { Search, Filter, ArrowUpDown, Calendar, DollarSign, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { fetchLoanDetails, fetchPersonalInfo } from "../../../../reducers/loanReducer";
 
- 
-// Mock loan data
-const MOCK_LOANS = [
-  {
-    id: "loan-1",
-    name: "Home Mortgage",
-    type: "Mortgage",
-    amount: 1250.0,
-    dueDate: "2025-05-01",
-    daysRemaining: 2,
-    status: "upcoming",
-    lender: "John Mwangi",
-    accountNumber: "XXXX-3456",
+// Status badge colors outside component to avoid re-creation
+const statusColors = {
+  upcoming: {
+    bgLight: "blue.50",
+    bgDark: "blue.900",
+    colorLight: "blue.700",
+    colorDark: "blue.200",
+    borderLight: "blue.200",
+    borderDark: "blue.700",
   },
-  {
-    id: "loan-2",
-    name: "Auto Loan",
-    type: "Auto",
-    amount: 385.5,
-    dueDate: "2025-04-29",
-    daysRemaining: 0,
-    status: "due-today",
-    lender: "Capital Auto Finance",
-    accountNumber: "XXXX-7890",
+  "due-today": {
+    bgLight: "orange.50",
+    bgDark: "orange.900",
+    colorLight: "orange.700",
+    colorDark: "orange.200",
+    borderLight: "orange.200",
+    borderDark: "orange.700",
   },
-  {
-    id: "loan-3",
-    name: "Student Loan",
-    type: "Education",
-    amount: 220.75,
-    dueDate: "2025-04-25",
-    daysRemaining: -4,
-    status: "overdue",
-    lender: "Education Funding Corp",
-    accountNumber: "XXXX-1234",
+  overdue: {
+    bgLight: "red.50",
+    bgDark: "red.900",
+    colorLight: "red.700",
+    colorDark: "red.200",
+    borderLight: "red.200",
+    borderDark: "red.700",
   },
-  {
-    id: "loan-4",
-    name: "Personal Loan",
-    type: "Personal",
-    amount: 175.0,
-    dueDate: "2025-05-10",
-    daysRemaining: 11,
-    status: "upcoming",
-    lender: "Community Credit Union",
-    accountNumber: "XXXX-5678",
+  paid: {
+    bgLight: "green.50",
+    bgDark: "green.900",
+    colorLight: "green.700",
+    colorDark: "green.200",
+    borderLight: "green.200",
+    borderDark: "green.700",
   },
-  {
-    id: "loan-5",
-    name: "Credit Card",
-    type: "Credit Card",
-    amount: 150.0,
-    dueDate: "2025-05-15",
-    daysRemaining: 16,
-    status: "upcoming",
-    lender: "Universal Bank",
-    accountNumber: "XXXX-9012",
+  cancelled: {
+    bgLight: "gray.50",
+    bgDark: "gray.700",
+    colorLight: "gray.700",
+    colorDark: "gray.200",
+    borderLight: "gray.200",
+    borderDark: "gray.700",
   },
-  {
-    id: "loan-6",
-    name: "Home Equity Line",
-    type: "HELOC",
-    amount: 325.0,
-    dueDate: "2025-04-20",
-    daysRemaining: -9,
-    status: "overdue",
-    lender: "First National Bank",
-    accountNumber: "XXXX-3457",
-  },
-  {
-    id: "loan-7",
-    name: "Business Loan",
-    type: "Business",
-    amount: 875.0,
-    dueDate: "2025-05-05",
-    daysRemaining: 6,
-    status: "upcoming",
-    lender: "Business Capital Inc",
-    accountNumber: "XXXX-8765",
-  },
-  {
-    id: "loan-8",
-    name: "Furniture Financing",
-    type: "Retail",
-    amount: 95.0,
-    dueDate: "2025-04-15",
-    daysRemaining: -14,
-    status: "paid",
-    lender: "Home Goods Finance",
-    accountNumber: "XXXX-4321",
-  },
-];
+};
 
+function LoansDue() {
+  const dispatch = useDispatch();
+  const { loanDetails, personalInfo, loading, error } = useSelector((state) => state.loan);
 
-
-
-function LoansDueTable() {
-  const { fetchData } = useFetch("loan_details");
-  const { fetchData: fetchPersonalInfo } = useFetch("personal_info");
-  const { filterData: fetchPaymentschedules } = useFilter("payment_schedules");
-  const [loans, setLoans] = useState([]);
-  const [dueDateFilter, setDueDateFilter] = useState([])
-  const [personalInfo, setPersonalInfo] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState("dueDate");
   const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [loadingLoans, setLoadingLoans] = useState(false);
-  const [loadingPersonalInfo, setLoadingPersonalInfo] = useState(false);
-  const [errorLoans, setErrorLoans] = useState(null);
-  const [errorPersonalInfo, setErrorPersonalInfo] = useState(null);
   const loansPerPage = 5;
 
   // Color mode values
@@ -151,103 +92,47 @@ function LoansDueTable() {
   const secondaryTextColor = useColorModeValue("gray.500", "gray.400");
   const hoverBgColor = useColorModeValue("gray.50", "gray.700");
 
-
   useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        const loansDataRaw = await fetchData();
-        const personalInfoData = await fetchPersonalInfo();
-        setPersonalInfo(personalInfoData || []);
-        const paymentSchedulesData = await fetchPaymentschedules();
-        
-        const paymentSchedulesMap = {};
-        if (paymentSchedulesData && Array.isArray(paymentSchedulesData)) {
-          paymentSchedulesData.forEach(schedule => {
-            if (schedule.loanId && schedule.dueDate) {
-              paymentSchedulesMap[schedule.loanId] = schedule.dueDate;
-            }
-          });         
-        }
+    dispatch(fetchLoanDetails());
+    dispatch(fetchPersonalInfo());
+  }, [dispatch]);
 
-        // Create a map from userId to full name from personalInfoData
-        const userIdToFullNameMap = {};
-        if (personalInfoData && Array.isArray(personalInfoData)) {
-          personalInfoData.forEach(user => {
-            userIdToFullNameMap[user.id] = `${user.firstName} ${user.lastName}`;
-            console.log(userIdToFullNameMap[user.id]);
-          });
-        }
+  // Create a map from userId to full name from personalInfo
+  const userIdToFullNameMap = {};
+  if (personalInfo && Array.isArray(personalInfo)) {
+    personalInfo.forEach(user => {
+      userIdToFullNameMap[user.id] = `${user.firstName} ${user.lastName}`;
+    });
+  }
 
-        // Transform raw loans data to expected format
-        const loansData = loansDataRaw.map((loan) => {
-          // Use due_date or fallback to created_at if due_date not available
-          const dueDate = loan.due_date || loan.created_at || null;
-          const daysRemaining = dueDate
-            ? Math.floor((new Date(dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-            : null;
+  // Transform raw loans data to expected format
+  const loansData = (loanDetails || []).map((loan) => {
+    const dueDate = loan.due_date || loan.created_at || null;
+    const daysRemaining = dueDate
+      ? Math.floor((new Date(dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      : null;
 
-          // Normalize status to consistent keys (replace underscores or spaces with hyphens and lowercase)
-          let normalizedStatus = loan.status ? loan.status.toLowerCase().replace(/[_\s]/g, "-") : "pending";
+    let normalizedStatus = loan.status ? loan.status.toLowerCase().replace(/[_\s]/g, "-") : "pending";
 
-          // Map lender name from userId if available
-          const lenderName = userIdToFullNameMap[loan.userId] || loan.lender || "Unknown Lender";
+    const lenderName = userIdToFullNameMap[loan.userId] || loan.lender || "Unknown Lender";
 
-          return {
-            id: loan.id,
-            name: loan.name || loan.purpose || "Unknown",
-            type: loan.type || loan.payment_frequency || "N/A",
-            amount: loan.amount || 0,
-            dueDate: dueDate,
-            daysRemaining: daysRemaining,
-            status: normalizedStatus,
-            lender: lenderName,
-            accountNumber: loan.accountNumber || loan.id || "N/A",
-          };
-        });
-
-        setLoans(loansData);
-      } catch (error) {
-        console.error("Error fetching loans or personal info:", error);
-        setLoans([]);
-      }
+    return {
+      id: loan.id,
+      name: loan.name || loan.purpose || "Unknown",
+      type: loan.type || loan.payment_frequency || "N/A",
+      amount: loan.amount || 0,
+      dueDate: dueDate,
+      daysRemaining: daysRemaining,
+      status: normalizedStatus,
+      lender: lenderName,
+      accountNumber: loan.accountNumber || loan.id || "N/A",
     };
-
-    fetchAllData();
-  }, [fetchData, fetchPersonalInfo]);
-
-  // Status badge colors
-  const statusColors = {
-    upcoming: {
-      bg: useColorModeValue("blue.50", "blue.900"),
-      color: useColorModeValue("blue.700", "blue.200"),
-      borderColor: useColorModeValue("blue.200", "blue.700"),
-    },
-    dueToday : {
-      bg: useColorModeValue("orange.50", "orange.900"),
-      color: useColorModeValue("orange.700", "orange.200"),
-      borderColor: useColorModeValue("orange.200", "orange.700"),
-    },
-    overdue: {
-      bg: useColorModeValue("red.50", "red.900"),
-      color: useColorModeValue("red.700", "red.200"),
-      borderColor: useColorModeValue("red.200", "red.700"),
-    },
-    paid: {
-      bg: useColorModeValue("green.50", "green.900"),
-      color: useColorModeValue("green.700", "green.200"),
-      borderColor: useColorModeValue("green.200", "green.700"),
-    },
-    cancelled: {
-      bg: useColorModeValue("gray.50", "gray.700"),
-      color: useColorModeValue("gray.700", "gray.200"),
-      borderColor: useColorModeValue("gray.200", "gray.700"),
-    },
-  };
+  });
 
   // Filter loans based on search term and status
-  const filteredLoans = loans.filter((loan) => {
+  const filteredLoans = loansData.filter((loan) => {
     const matchesSearch =
-      (loan.purpose?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (loan.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (loan.lender?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
 
     const matchesStatus = statusFilter === "all" || loan.status === statusFilter;
@@ -319,10 +204,10 @@ function LoansDueTable() {
       );
     }
     const labels = {
-      upcoming : "Upcoming",
-      dueToday : "Due Today",
+      upcoming: "Upcoming",
+      "due-today": "Due Today",
       overdue: "Overdue",
-      paid : "Paid",
+      paid: "Paid",
     };
 
     return (
@@ -330,10 +215,10 @@ function LoansDueTable() {
         px={2}
         py={1}
         borderRadius="full"
-        bg={colors.bg}
-        color={colors.color}
+        bg={useColorModeValue(colors.bgLight, colors.bgDark)}
+        color={useColorModeValue(colors.colorLight, colors.colorDark)}
         borderWidth="1px"
-        borderColor={colors.borderColor}
+        borderColor={useColorModeValue(colors.borderLight, colors.borderDark)}
       >
         {labels[status] || "Unknown"}
       </Badge>
@@ -363,6 +248,21 @@ function LoansDueTable() {
     }
   };
 
+  if (loading) {
+    return (
+      <Box p={4} textAlign="center" color={textColor}>
+        Loading loans...
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={4} textAlign="center" color="red.500">
+        Error loading loans: {error}
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -372,7 +272,7 @@ function LoansDueTable() {
       borderWidth="1px"
       borderColor={borderColor}
       boxShadow="sm"
-      mt="50px" 
+      mt="50px"
     >
       <Box p={4} borderBottomWidth="1px" borderColor={borderColor}>
         <Flex
@@ -539,13 +439,13 @@ function LoansDueTable() {
                     </Flex>
                   </Td>
                   <Td>
-                  {getStatusBadge(loan.status)}
-                </Td>
-                <Td>
-                  <Text fontSize="sm" color={getDaysRemainingColor(loan.status)}>
-                    {getDaysRemainingText(loan.daysRemaining, loan.status)}
-                  </Text>
-                </Td>
+                    {getStatusBadge(loan.status)}
+                  </Td>
+                  <Td>
+                    <Text fontSize="sm" color={getDaysRemainingColor(loan.status)}>
+                      {getDaysRemainingText(loan.daysRemaining, loan.status)}
+                    </Text>
+                  </Td>
                   <Td textAlign="right">
                     <Flex justifyContent="flex-end" gap={2}>
                       {(loan.status === "upcoming" || loan.status === "due-today" || loan.status === "overdue") && (
@@ -629,4 +529,4 @@ function LoansDueTable() {
   );
 }
 
-export default LoansDueTable;
+export default LoansDue;

@@ -1,6 +1,7 @@
-"use client"
-
-import { useState } from "react"
+import { useParams } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { useState, useEffect } from "react";
+import { fetchClients } from "../../../reducers/clientsReducer";
 import { 
   Box,
   Stack,
@@ -67,31 +68,62 @@ import {
   Shield,
   DollarSign,
   Users
-} from "lucide-react"
-import { clientData } from './clientsData'
+} from "lucide-react";
 
 export function ClientDetails({ clientId }) {
-  const [activeTab, setActiveTab] = useState("overview")
-  const [isEditing, setIsEditing] = useState(false)
+  const dispatch = useDispatch();
+  const { clientsList, loading, error } = useSelector((state) => state.clients);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isEditing, setIsEditing] = useState(false);
 
-  const textColor = useColorModeValue("gray.600", "gray.300")
-  const headingColor = useColorModeValue("gray.700", "white")
-  const borderColor = useColorModeValue("gray.200", "gray.700")
-  const cardBg = useColorModeValue("white", "gray.800")
+  useEffect(() => {
+    if (clientsList.length === 0) {
+      dispatch(fetchClients());
+    }
+  }, [clientsList.length, dispatch]);
+
+  const textColor = useColorModeValue("gray.600", "gray.300");
+  const headingColor = useColorModeValue("gray.700", "white");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const cardBg = useColorModeValue("white", "gray.800");
+
+  console.log("ClientDetails: clientId from URL:", clientId);
+  console.log("ClientDetails: clientsList length:", clientsList.length);
+
+  const client = clientsList.find((c) => c.id.trim().toLowerCase() === clientId.trim().toLowerCase());
+
+  if (loading) {
+    return <Text>Loading client details...</Text>;
+  }
+
+  if (error) {
+    return <Text color="red.500">Error loading client details: {error}</Text>;
+  }
+
+  if (!client) {
+    return (
+      <>
+        <Text color="gray.500">Client not found.</Text>
+        <Text>clientId: {clientId}</Text>
+        <Text>clientsList length: {clientsList.length}</Text>
+        <Text>clientsList IDs: {clientsList.map(c => c.id).join(", ")}</Text>
+      </>
+    );
+  }
 
   const getCreditScoreColor = (score) => {
-    if (score >= 750) return "green.400"
-    if (score >= 650) return "blue.400"
-    if (score >= 550) return "yellow.400"
-    return "red.400"
-  }
+    if (score >= 750) return "green.400";
+    if (score >= 650) return "blue.400";
+    if (score >= 550) return "yellow.400";
+    return "red.400";
+  };
 
   const getCreditScoreText = (score) => {
-    if (score >= 750) return "Excellent"
-    if (score >= 650) return "Good"
-    if (score >= 550) return "Fair"
-    return "Poor"
-  }
+    if (score >= 750) return "Excellent";
+    if (score >= 650) return "Good";
+    if (score >= 550) return "Fair";
+    return "Poor";
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -100,30 +132,30 @@ export function ClientDetails({ clientId }) {
       defaulted: { color: "red", icon: ArrowDownLeft },
       completed: { color: "blue", icon: CheckCircle },
       pending: { color: "gray", icon: Clock }
-    }
-    const config = statusConfig[status] || statusConfig.pending
+    };
+    const config = statusConfig[status] || statusConfig.pending;
     return (
       <Badge colorScheme={config.color} display="flex" alignItems="center" px={3} py={1} borderRadius="full">
         <Icon as={config.icon} mr={2} boxSize={3} />
         <Text>{status.charAt(0).toUpperCase() + status.slice(1)}</Text>
       </Badge>
-    )
-  }
+    );
+  };
 
   const getRiskBadge = (risk) => {
     const riskConfig = {
       low: { color: "green", icon: Shield },
       medium: { color: "yellow", icon: AlertTriangle },
       high: { color: "red", icon: AlertTriangle }
-    }
-    const config = riskConfig[risk] || riskConfig.medium
+    };
+    const config = riskConfig[risk] || riskConfig.medium;
     return (
       <Badge colorScheme={config.color} display="flex" alignItems="center" px={3} py={1} borderRadius="full">
         <Icon as={config.icon} mr={2} boxSize={3} />
         <Text>{risk.charAt(0).toUpperCase() + risk.slice(1)} Risk</Text>
       </Badge>
-    )
-  }
+    );
+  };
 
   const getLoanTypeBadge = (type) => {
     const typeConfig = {
@@ -132,46 +164,15 @@ export function ClientDetails({ clientId }) {
       Education: { color: "purple", icon: GraduationCap },
       Housing: { color: "yellow", icon: Home },
       Emergency: { color: "red", icon: Heart }
-    }
-    const config = typeConfig[type] || { color: "gray", icon: CreditCard }
+    };
+    const config = typeConfig[type] || { color: "gray", icon: CreditCard };
     return (
       <Badge variant="subtle" colorScheme={config.color} display="flex" alignItems="center" px={3} py={1} borderRadius="full">
         <Icon as={config.icon} mr={2} boxSize={3} />
         <Text>{type}</Text>
       </Badge>
-    )
-  }
-
-  const client = {
-    id: clientId || "CL-1001",
-    name: "Maria Garcia",
-    avatar: "/clients/maria.jpg",
-    email: "maria.garcia@example.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Main St, Anytown, CA 94123",
-    joinDate: "2021-05-15",
-    occupation: "Small Business Owner",
-    income: "$3,500/month",
-    status: "active",
-    riskLevel: "low",
-    creditScore: 720,
-    businessName: "Maria's Handcrafts",
-    businessType: "Retail - Handmade Crafts",
-    businessAddress: "456 Market St, Anytown, CA 94123",
-    businessStartDate: "2019-03-10",
-    dependents: 2,
-    education: "Bachelor's Degree",
-    maritalStatus: "Married",
-    spouseName: "Carlos Garcia",
-    spouseOccupation: "Teacher",
-    emergencyContact: "Ana Rodriguez (Sister) - +1 (555) 987-6543",
-    totalLoans: 2,
-    activeLoans: 1,
-    totalBorrowed: 4300,
-    totalRepaid: 3050,
-    nextPaymentDate: "2023-06-15",
-    nextPaymentAmount: 250
-  }
+    );
+  };
 
   return (
     <Box p={6} mt={"50px"}>
@@ -192,7 +193,7 @@ export function ClientDetails({ clientId }) {
             <VStack align={{ base: "center", md: "start" }} spacing={4}>
               <Avatar
                 size="2xl"
-                src={client.avatar}
+                src={client.avatarUrl || "/placeholder.svg"}
                 name={client.name}
                 borderWidth={2}
                 borderColor={borderColor}
@@ -250,7 +251,7 @@ export function ClientDetails({ clientId }) {
                   <StatNumber color={headingColor}>${client.totalBorrowed}</StatNumber>
                   <StatHelpText>
                     <StatArrow type="increase" />
-                    {Math.round((client.totalRepaid/client.totalBorrowed) * 100)}% Repaid
+                    {client.totalBorrowed > 0 ? Math.round((client.totalRepaid / client.totalBorrowed) * 100) : 0}% Repaid
                   </StatHelpText>
                 </Stat>
                 <Stat>
@@ -592,5 +593,10 @@ export function ClientDetails({ clientId }) {
         </TabPanels>
       </Tabs>
     </Box>
-  )
+  );
+}
+
+export default function ClientDetailsWrapper() {
+  const { id } = useParams();
+  return <ClientDetails clientId={id} />;
 }

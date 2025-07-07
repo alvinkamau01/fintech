@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import {useDispatch , useSelector} from "react-redux"
+import { fetchClients } from "../../../reducers/clientsReducer";
 import {
   Box,
   Flex,
@@ -22,8 +24,16 @@ import {
   Text,
   IconButton,
   Avatar,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  useDisclosure,
 } from "@chakra-ui/react"
 import { ChevronLeftIcon, ChevronRightIcon, TriangleDownIcon, TriangleUpIcon, AddIcon, DownloadIcon, HamburgerIcon } from "@chakra-ui/icons"
+import Profile from "./Profile"
 
 // Define client status colors
 const statusColors = {
@@ -33,97 +43,11 @@ const statusColors = {
   "high-risk": "red",
 }
 
-// Mock data for clients
-const mockClients = [
-  {
-    id: "CL-001",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "(555) 123-4567",
-    status: "active",
-    riskScore: 85,
-    lastActivity: "2023-05-01",
-    outstandingBalance: 15000,
-    loanCount: 2,
-    avatarUrl: "/clients/john.jpg",
-  },
-  {
-    id: "CL-002",
-    name: "Maria Rodriguez",
-    email: "maria.r@example.com",
-    phone: "(555) 234-5678",
-    status: "active",
-    riskScore: 92,
-    lastActivity: "2023-05-03",
-    outstandingBalance: 25000,
-    loanCount: 1,
-    avatarUrl: "/clients/maria.jpg",
-  },
-  {
-    id: "CL-003",
-    name: "Sarah Johnson",
-    email: "sarah.j@example.com",
-    phone: "(555) 345-6789",
-    status: "pending",
-    riskScore: 75,
-    lastActivity: "2023-04-28",
-    outstandingBalance: 0,
-    loanCount: 0,
-    avatarUrl: "/clients/sarah.jpg",
-  },
-  {
-    id: "CL-004",
-    name: "Carlos Mendez",
-    email: "carlos.m@example.com",
-    phone: "(555) 456-7890",
-    status: "high-risk",
-    riskScore: 45,
-    lastActivity: "2023-04-15",
-    outstandingBalance: 12000,
-    loanCount: 3,
-    avatarUrl: "/clients/carlos.jpg",
-  },
-  {
-    id: "CL-005",
-    name: "Emily Chen",
-    email: "emily.c@example.com",
-    phone: "(555) 567-8901",
-    status: "inactive",
-    riskScore: 60,
-    lastActivity: "2023-03-20",
-    outstandingBalance: 5000,
-    loanCount: 1,
-    avatarUrl: "/clients/emily.jpg",
-  },
-  {
-    id: "CL-006",
-    name: "Ahmed Hassan",
-    email: "ahmed.h@example.com",
-    phone: "(555) 678-9012",
-    status: "active",
-    riskScore: 88,
-    lastActivity: "2023-05-02",
-    outstandingBalance: 30000,
-    loanCount: 2,
-    avatarUrl: "/clients/ahmed.jpg",
-  },
-  {
-    id: "CL-007",
-    name: "Olivia Taylor",
-    email: "olivia.t@example.com",
-    phone: "(555) 789-0123",
-    status: "active",
-    riskScore: 90,
-    lastActivity: "2023-05-04",
-    outstandingBalance: 18000,
-    loanCount: 1,
-    avatarUrl: "/clients/olivia.jpg",
-  },
-]
-
 export default function ClientsList() {
-  const [clients, setClients] = useState(mockClients)
-  const [filteredClients, setFilteredClients] = useState(mockClients)
+  const dispatch = useDispatch();
+  const { clientsList, loading, error } = useSelector((state) => state.clients);
+
+  const [filteredClients, setFilteredClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sortField, setSortField] = useState("name")
@@ -131,10 +55,18 @@ export default function ClientsList() {
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
-  const [totalPages, setTotalPages] = useState(Math.ceil(mockClients.length / itemsPerPage))
+  const [totalPages, setTotalPages] = useState(0)
+
+  // Modal state
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [selectedClient, setSelectedClient] = useState(null)
 
   useEffect(() => {
-    let result = [...mockClients]
+    dispatch(fetchClients());
+  }, [dispatch]);
+
+  useEffect(() => {
+    let result = [...clientsList];
 
     if (searchTerm) {
       result = result.filter(
@@ -165,7 +97,7 @@ export default function ClientsList() {
     setFilteredClients(result)
     setTotalPages(Math.ceil(result.length / itemsPerPage))
     setCurrentPage(1)
-  }, [searchTerm, statusFilter, sortField, sortDirection, itemsPerPage])
+  }, [searchTerm, statusFilter, sortField, sortDirection, itemsPerPage, clientsList])
 
   const getCurrentPageItems = () => {
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -197,6 +129,34 @@ export default function ClientsList() {
       month: "short",
       day: "numeric",
     }).format(date)
+  }
+
+  // Define badge functions
+  const getStatusBadge = (status) => {
+    const color = statusColors[status] || "gray"
+    return <Badge colorScheme={color}>{status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown"}</Badge>
+  }
+
+  const getRiskBadge = (riskLevel) => {
+    let color = "gray"
+    if (riskLevel >= 80) color = "green"
+    else if (riskLevel >= 60) color = "yellow"
+    else color = "red"
+    return <Badge colorScheme={color}>{riskLevel}</Badge>
+  }
+
+  // Handler to open modal with selected client
+  const handleViewDetails = (client) => {
+    setSelectedClient(client)
+    onOpen()
+  }
+
+  if (loading) {
+    return <Text>Loading clients...</Text>;
+  }
+
+  if (error) {
+    return <Text color="red.500">Error loading clients: {error}</Text>;
   }
 
   return (
@@ -277,12 +237,6 @@ export default function ClientsList() {
                   {sortField === "outstandingBalance" && (sortDirection === "asc" ? <TriangleUpIcon /> : <TriangleDownIcon />)}
                 </Flex>
               </Th>
-              <Th cursor="pointer" onClick={() => handleSort("lastActivity")}>
-                <Flex align="center" gap={1}>
-                  Last Activity
-                  {sortField === "lastActivity" && (sortDirection === "asc" ? <TriangleUpIcon /> : <TriangleDownIcon />)}
-                </Flex>
-              </Th>
               <Th textAlign="right">Actions</Th>
             </Tr>
           </Thead>
@@ -313,7 +267,9 @@ export default function ClientsList() {
                   </Box>
                 </Td>
                 <Td>
-                  <Badge colorScheme={statusColors[client.status]}>{client.status.charAt(0).toUpperCase() + client.status.slice(1)}</Badge>
+                  <Badge colorScheme={statusColors[client.status]}>
+                    {client.status ? client.status.charAt(0).toUpperCase() + client.status.slice(1) : "Unknown"}
+                  </Badge>
                 </Td>
                 <Td>
                   <Flex align="center" gap={2}>
@@ -338,12 +294,11 @@ export default function ClientsList() {
                     {client.loanCount} loans
                   </Text>
                 </Td>
-                <Td>{formatDate(client.lastActivity)}</Td>
                 <Td textAlign="right">
                   <Menu>
                     <MenuButton as={IconButton} icon={<HamburgerIcon />} size="sm" variant="ghost" />
                     <MenuList>
-                      <MenuItem as={Link} href={`/clients/${client.id}`}>
+                      <MenuItem onClick={() => handleViewDetails(client)}>
                         View Details
                       </MenuItem>
                       <MenuItem>Edit Client</MenuItem>
@@ -417,6 +372,24 @@ export default function ClientsList() {
           </Flex>
         </Flex>
       )}
+
+      {/* Modal for client details */}
+      <Modal isOpen={isOpen} onClose={onClose} size="6xl" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Client Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedClient && (
+              <Profile
+                client={selectedClient}
+                getStatusBadge={getStatusBadge}
+                getRiskBadge={getRiskBadge}
+              />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   )
 }
